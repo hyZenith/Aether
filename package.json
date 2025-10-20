@@ -1,6 +1,6 @@
 {
-  "name": "inkdrop-desk",
-  "productName": "inkdrop-desk",
+  "name": "aether",
+  "productName": "Aether",
   "version": "1.0.0",
   "description": "My Electron application description",
   "main": ".vite/build/main.js",
