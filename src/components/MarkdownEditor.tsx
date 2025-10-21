@@ -1,11 +1,14 @@
 import React from 'react'
 
-const MarkdownPanel = () => {
+const MarkdownEditor = () => {
   return (
-    <div className='bg-[#F8F7F7]'>
-      
+    <div>
+      <div>
+        {/* Markdown editor implementation goes here */}
+        Markdown editor
+      </div>
     </div>
   )
 }
 
-export default MarkdownPanel
+export default MarkdownEditor

@@ -2,10 +2,6 @@ import React from 'react'
 import { RefreshCw, NotebookPen, Search } from 'lucide-react'
 
 
-// const buttonVariants = cva{
-
-// }
-
 
 const NotesList = () => {
   return (
@@ -31,7 +27,8 @@ const NotesList = () => {
 
       {/* notes or files section */}
       <div className='notes-item  '>
-        <div>hell</div>
+        {/* individual file Note item */}
+        <div>Note 1</div>
       </div>
 
     </div>
