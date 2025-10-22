@@ -28,7 +28,6 @@ const NotesList = () => {
       {/* notes or files section */}
       <div className='notes-item  '>
         {/* individual file Note item */}
-        <div>Note 1</div>
       </div>
 
     </div>

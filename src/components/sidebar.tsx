@@ -1,4 +1,4 @@
-import { ChevronRight, ChevronDown, Settings, SortAsc, FileText, Pin, BookOpen, Trash2, Activity, Plus, CircleDot,Circle ,PauseCircle, CheckCircle ,XCircle,Tag } from "lucide-react";
+import { ChevronRight, ChevronDown, Settings,  FileText, Pin, BookOpen, Trash2, Activity, Plus, CircleDot,Circle ,PauseCircle, CheckCircle ,XCircle,Tag, User } from "lucide-react";
 import { useState } from "react";
 
 interface SidebarItem {
@@ -107,8 +107,8 @@ export const Sidebar = ({ onOpenVault }: SidebarProps) => {
 
   return (
     <aside className="flex flex-col h-screen w-64 bg-[#1f2326] border-r border-[#2d3236]">
-      <div className="flex items-center justify-between px-4 py-3 border-b border-sidebar-border">
-        <button onClick={onOpenVault} className="text-xs px-2 py-1 rounded bg-[#356BFB] hover:bg-[#356BFB]/90 transition-colors">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-[#2d3236] border-sidebar-border">
+        <button onClick={onOpenVault} className="text-xs font-semibold px-2 py-1 rounded bg-[#356BFB] hover:bg-[#356BFB]/90 transition-colors">
           Open Vault
         </button>
         <div className="flex gap-2">
@@ -254,9 +254,17 @@ export const Sidebar = ({ onOpenVault }: SidebarProps) => {
 
 
       </nav>
-      <div className="flex flex-col gap-0.5 px-4 py-3 border-t border-sidebar-border text-gray-400 hover:text-gray-200 ">
-        <span className="text-sm">Takuya Matsuyama</span>
-        <span className="text-xs text-muted-foreground">Synced at 11:32:06</span>
+      <div className="border-t border-[#2d3236]">
+        <button className="w-full flex items-center justify-between px-4 py-3 text-gray-400 hover:bg-[#282c30] transition-colors group">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full bg-[#333840] flex items-center justify-center">
+              <User className="w-4 h-4" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-medium text-gray-200">Zenith</p>
+            </div>
+          </div>
+        </button>
       </div>
     </aside>
   );
