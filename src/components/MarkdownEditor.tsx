@@ -1,32 +1,17 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
-import { Eye, Columns2, Hash, Bold, Italic, Strikethrough, Link, List, ListOrdered, CheckSquare, Quote, Code, Code2, Minus, Image, X, Plus,Book,ChevronDown  } from "lucide-react";
+import { Eye, Columns2, Hash, Bold, Italic, Strikethrough, Link, List, ListOrdered, CheckSquare, Quote, Code, Code2, Minus, Image, X, Plus, Book, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 
 type ViewMode = "edit" | "preview" | "split";
 
 const Index = () => {
-  const [markdown, setMarkdown] = useState(`# Welcome to Markdown Editor
+  const [markdown, setMarkdown] = useState<string>("");
 
-## Features
-- Write in **markdown**
-- Live preview
-- Split view mode
-
-### Example Code
-\`\`\`javascript
-const hello = "world";
-\`\`\`
-
-> This is a quote
-
-- List item 1
-- List item 2
-`);
   const [viewMode, setViewMode] = useState<ViewMode>("edit");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const [tags, setTags] = useState<string[]>(["React Native", "Database"]);
+  const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [showTagInput, setShowTagInput] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
@@ -40,12 +25,16 @@ const hello = "world";
     "Learning",
   ];
 
-  const tagColors: { [key: string]: string } = {
-    "React Native": "bg-gray-700 text-gray-200",
-    "Database": "bg-amber-600 text-white",
-    "TypeScript": "bg-blue-600 text-white",
-    "UI/UX": "bg-purple-600 text-white",
-  };
+  const [open, setOpen] = useState(false);
+
+  // update the tag: when the user adds a new tag
+  // useEffect(() => {
+  //   if (newTag.trim() !== "") {
+  //     setOpen(true);
+  //   }else{
+  //     setOpen(false);
+  //   }
+  // },[newTag])
 
   const addTag = () => {
     if (newTag.trim() && !tags.includes(newTag.trim())) {
@@ -114,7 +103,7 @@ const hello = "world";
             {/* Folder Selector */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center  gap-2 text-sm font-semibold text-gray-400  transition-colors">
+                <button className="flex items-center  gap-2 text-sm font-semibold text-gray-500  transition-colors">
                   {selectedFolder}
                   <ChevronDown className="w-4 h-4" />
                 </button>
@@ -125,7 +114,7 @@ const hello = "world";
                     <DropdownMenuItem
                       key={folder}
                       onClick={() => setSelectedFolder(folder)}
-                      className=" w-full cursor-pointer rounded pl-5 pr-9 py-1  hover:bg-gray-100"
+                      className=" w-full cursor-pointer rounded pl-5 pr-9 py-1  hover:bg-gray-200"
                     >
                       {folder}
                     </DropdownMenuItem>
@@ -137,17 +126,17 @@ const hello = "world";
             {/* Status Selector */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-1 px-3 py-1 rounded-full bg-gray-700 text-gray-300 text-sm hover:bg-gray-600 transition-colors">
+                <button className="flex items-center gap-1 px-3 py-1   text-gray-400 font-semibold text-sm  transition-colors">
                   {selectedStatus || "Status"}
-                  <ChevronDown className="w-3 h-3" />
+                  <ChevronDown className="w-4 h-4" />
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-[#2a2d31] border-gray-700 z-50">
+              <DropdownMenuContent className="tranlate-x-4 translate-y-1 bg-white shadow-xl/30 rounded-sm z-60 py-2 text-sm">
                 {statuses.map((status) => (
                   <DropdownMenuItem
                     key={status}
                     onClick={() => setSelectedStatus(status)}
-                    className="text-gray-300 hover:bg-gray-700 hover:text-white cursor-pointer"
+                    className="w-full cursor-pointer rounded pl-4 pr-7 py-1 hover:bg-gray-200 "
                   >
                     {status}
                   </DropdownMenuItem>
@@ -162,7 +151,7 @@ const hello = "world";
             {tags.map((tag) => (
               <span
                 key={tag}
-                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium ${tagColors[tag] || "bg-gray-700 text-gray-200"
+                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium" text-gray-200"
                   }`}
               >
                 {tag}
@@ -176,43 +165,22 @@ const hello = "world";
             ))}
 
             {/* Add New Tag Input */}
-            {showTagInput ? (
-              <div className="flex items-center gap-1">
-                <input
-                  type="text"
-                  value={newTag}
-                  onChange={(e) => setNewTag(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && addTag()}
-                  placeholder="Tag name..."
-                  className="px-2 py-1 bg-gray-800 text-gray-300 text-sm rounded border border-gray-600 outline-none focus:border-gray-500"
-                  autoFocus
-                />
-                <button
-                  onClick={addTag}
-                  className="p-1 text-green-500 hover:text-green-400"
-                >
-                  <Plus className="w-4 h-4" />
-                </button>
-                <button
-                  onClick={() => {
-                    setShowTagInput(false);
-                    setNewTag("");
-                  }}
-                  className="p-1 text-gray-500 hover:text-gray-400"
-                >
-                  <X className="w-4 h-4" />
-                </button>
-              </div>
-            ) : (
-              <button
-                onClick={() => setShowTagInput(true)}
-                className="text-sm text-gray-500 hover:text-gray-300 transition-colors"
-              >
-                Add Tags
-              </button>
-            )}
+            {/* {showTagInput ? ( */}
+            <div className="flex gap-1">
+              <input
+                type="text"
+                value={newTag}
+                placeholder="Add tag"
+                onChange={(e) => setNewTag(e.target.value)}
+                className="bg-transparent font-semibold outline-none text-gray-400 text-sm"
+              />
+            </div>
+
+
           </div>
         </div>
+
+
 
         {/* Markdown Toolbar */}
         <div className="flex items-center gap-1 px-4 pb-3 ">
@@ -264,8 +232,8 @@ const hello = "world";
           <button
             onClick={() => setViewMode(viewMode === "preview" ? "edit" : "preview")}
             className={`p-2 rounded ${viewMode === "preview"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-800 text-gray-400 hover:text-gray-200"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-800 text-gray-400 hover:text-gray-200"
               } transition-colors`}
             title="Toggle preview"
           >
@@ -274,8 +242,8 @@ const hello = "world";
           <button
             onClick={() => setViewMode(viewMode === "split" ? "edit" : "split")}
             className={`p-2 rounded ${viewMode === "split"
-                ? "bg-blue-600 text-white"
-                : "bg-gray-800 text-gray-400 hover:text-gray-200"
+              ? "bg-blue-600 text-white"
+              : "bg-gray-800 text-gray-400 hover:text-gray-200"
               } transition-colors`}
             title="Toggle split view"
           >
