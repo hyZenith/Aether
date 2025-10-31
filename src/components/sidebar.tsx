@@ -1,18 +1,16 @@
-import { ChevronRight, ChevronDown, Settings, FileText, Pin, BookOpen, Trash2, Activity, Plus, CircleDot, Circle, PauseCircle, CheckCircle, XCircle, Tag, User,FolderOpen } from "lucide-react";
+import { ChevronRight, ChevronDown, Settings, FileText, Pin, BookOpen, Trash2, Activity, Plus, CircleDot, Circle, PauseCircle, CheckCircle, XCircle, Tag, User, FolderOpen, Diff } from "lucide-react";
 import { useState } from "react";
+import {FolderTree} from "./ui/FolderTree";
 
-interface SidebarItem {
-  id: string;
-  label: string;
-  icon?: React.ReactNode;
-  count?: number;
-  children?: SidebarItem[];
+
+interface VaultFolder {
+  name: string;
+  path: string;
+  subfolders?: VaultFolder[];
 }
 
-
 interface SidebarProps {
-  onOpenVault: () => void;
-
+  onOpenVault?: () => void;
   vaultName?: string;
 }
 
@@ -21,10 +19,76 @@ export const Sidebar = ({ onOpenVault, vaultName }: SidebarProps) => {
   const [isTagsOpen, setIsTagsOpen] = useState(true);
   const [isNotebooksOpen, setIsNotebooksOpen] = useState(true);
 
+  const [folders, setFolders] = useState<VaultFolder[]>([]); //store the folder
+
+
+  const handleOpenVault = async () => {
+    if (window.electronAPI && typeof window.electronAPI.selectFolder === 'function') {
+      try {
+        const selectedFolder = await window.electronAPI.selectFolder();
+        // Handle the selected folder, e.g., update vaultName or notify parent
+        console.log('Selected folder:', selectedFolder);
+        // Optionally call the prop if provided
+
+        // read folder structure
+        const folderData = await window.electronAPI.readFolder(selectedFolder!);
+        console.log('Folder structure:', folderData);
+
+        setFolders(folderData); //store folders for rendering
+
+      } catch (error) {
+        console.error('Error selecting folder:', error);
+      }
+    } else {
+      console.error('electronAPI.selectFolder is not available');
+    }
+  };
+
+
+
+  const renderFolders = (folders: VaultFolder[], depth = 0) => {
+    return folders.map((folder) => (
+      <div>
+        <span
+          onClick={() => setIsNotebooksOpen(!isNotebooksOpen)}
+          className="w-full flex items-center justify-between px-4 py-2 text-gray-400 hover:bg-[#282c30] hover:text-gray-200 transition-colors group"
+        >
+          <div className="flex items-center gap-3">
+            <BookOpen className="w-5 h-5" />
+            <span className="text-sm font-medium">{folder.name}</span>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                // Add notebook logic
+              }}
+              className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-[#333840 rounded"
+            >
+              <Plus className="w-4 h-4" />
+            </button>
+          </div>
+        </span>
+
+        {isNotebooksOpen && (
+          <div className="ml-2 mt-1">
+            {folder.subfolders.map((sub) => (
+              <FolderTree key={sub.path} folder={sub} />
+            ))}
+          </div>
+
+        )}
+
+
+      </div>
+    ))
+  }
+
+
   return (
     <aside className="flex flex-col h-screen w-64 bg-[#151515] border-r border-[#2d3236]">
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#2d3236] border-sidebar-border">
-        <button onClick={onOpenVault} className="flex items-center gap-2 text-xs font-semibold px-2 py-1 rounded text-gray-400 hover:bg-[#282c30] hover:text-gray-200 transition-colors">
+        <button onClick={handleOpenVault} className="flex items-center gap-2 text-xs font-semibold px-2 py-1 rounded text-gray-400 hover:bg-[#282c30] hover:text-gray-200 transition-colors">
           <FolderOpen className="w-4 h-4" />
           <span>{vaultName || "Open Vault"}</span>
         </button>
@@ -45,38 +109,14 @@ export const Sidebar = ({ onOpenVault, vaultName }: SidebarProps) => {
 
         {/* Notebooks */}
         <div className="mt-1">
-          <span
-            onClick={() => setIsNotebooksOpen(!isNotebooksOpen)}
-            className="w-full flex items-center justify-between px-4 py-2 text-gray-400 hover:bg-[#282c30] hover:text-gray-200 transition-colors group"
-          >
-            <div className="flex items-center gap-3">
-              <BookOpen className="w-5 h-5" />
-              <span className="text-sm font-medium">Notebooks</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  // Add notebook logic
-                }}
-                className="opacity-0 group-hover:opacity-100 transition-opacity p-0.5 hover:bg-[#333840] rounded"
-              >
-                <Plus className="w-4 h-4" />
-              </button>
-            </div>
-          </span>
 
-          {isNotebooksOpen && (
-            <div className="ml-4">
-              <button className="w-full flex items-center justify-between pl-8 pr-4 py-2 text-gray-400 hover:bg-[#282c30] hover:text-gray-200 transition-colors group">
-                <div className="flex items-center gap-3">
-                  <BookOpen className="w-4 h-4" />
-                  <span className="text-sm">First Notebook</span>
-                </div>
-                <span className="text-xs text-gray-500 group-hover:text-gray-400">2</span>
-              </button>
-            </div>
+          {folders.length > 0 ? (
+            renderFolders(folders)
+          ) : (
+            <p className="text-xs text-gray-500 pl-8 py-2">No vault opened</p>
           )}
+
+
         </div>
 
         {/* Trash */}
@@ -168,7 +208,6 @@ export const Sidebar = ({ onOpenVault, vaultName }: SidebarProps) => {
             </div>
           )}
         </div>
-
 
       </nav>
       <div className="border-t border-[#2d3236]">
