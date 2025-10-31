@@ -172,14 +172,12 @@ const Index = () => {
                 value={newTag}
                 placeholder="Add tag"
                 onChange={(e) => setNewTag(e.target.value)}
+                onKeyDown={(e)=> e.key === "Enter" && addTag()}
                 className="bg-transparent font-semibold outline-none text-gray-400 text-sm"
               />
             </div>
-
-
           </div>
         </div>
-
 
 
         {/* Markdown Toolbar */}
