@@ -1,18 +1,15 @@
 import { ChevronRight, ChevronDown, Settings, FileText, Pin, BookOpen, Trash2, Activity, Plus, CircleDot, Circle, PauseCircle, CheckCircle, XCircle, Tag, User, FolderOpen, Diff } from "lucide-react";
 import { useState } from "react";
-import {FolderTree} from "./ui/FolderTree";
+import { FolderTree } from "./ui/FolderTree";
+import { openVaultAndRead, VaultFolder } from "../utils/vaultManager";
 
 
-interface VaultFolder {
-  name: string;
-  path: string;
-  subfolders?: VaultFolder[];
-}
+
 
 interface SidebarProps {
   onOpenVault?: () => void;
   vaultName?: string;
-  onSelectFolder?:(folderPath:string)=>void;
+  onSelectFolder?: (folderPath: string) => void;
 }
 
 export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder }: SidebarProps) => {
@@ -26,16 +23,9 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder }: SidebarProps
   const handleOpenVault = async () => {
     if (window.electronAPI && typeof window.electronAPI.selectFolder === 'function') {
       try {
-        const selectedFolder = await window.electronAPI.selectFolder();
-        // Handle the selected folder, e.g., update vaultName or notify parent
-        console.log('Selected folder:', selectedFolder);
-        // Optionally call the prop if provided
-
-        // read folder structure
-        const folderData = await window.electronAPI.readFolder(selectedFolder!);
+        const folderData = await openVaultAndRead();
+        setFolders(folderData);
         console.log('Folder structure:', folderData);
-
-        setFolders(folderData); //store folders for rendering
 
       } catch (error) {
         console.error('Error selecting folder:', error);
@@ -51,9 +41,10 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder }: SidebarProps
     return folders.map((folder) => (
       <div key={folder.path}>
         <span
-          onClick={() => {setIsNotebooksOpen(!isNotebooksOpen);
-            if (onSelectFolder) onSelectFolder(folder.path); // notify parent about folder selection
-           }}
+          onClick={() => {
+            setIsNotebooksOpen(!isNotebooksOpen);
+            onSelectFolder?.(folder.path);
+          }}
           className="w-full flex items-center justify-between px-4 py-2 text-gray-400 hover:bg-[#282c30] hover:text-gray-200 transition-colors group"
         >
           <div className="flex items-center gap-3">
