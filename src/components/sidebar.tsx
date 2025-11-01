@@ -12,9 +12,10 @@ interface VaultFolder {
 interface SidebarProps {
   onOpenVault?: () => void;
   vaultName?: string;
+  onSelectFolder?:(folderPath:string)=>void;
 }
 
-export const Sidebar = ({ onOpenVault, vaultName }: SidebarProps) => {
+export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder }: SidebarProps) => {
   const [isStatusOpen, setIsStatusOpen] = useState(true);
   const [isTagsOpen, setIsTagsOpen] = useState(true);
   const [isNotebooksOpen, setIsNotebooksOpen] = useState(true);
@@ -48,14 +49,16 @@ export const Sidebar = ({ onOpenVault, vaultName }: SidebarProps) => {
 
   const renderFolders = (folders: VaultFolder[], depth = 0) => {
     return folders.map((folder) => (
-      <div>
+      <div key={folder.path}>
         <span
-          onClick={() => setIsNotebooksOpen(!isNotebooksOpen)}
+          onClick={() => {setIsNotebooksOpen(!isNotebooksOpen);
+            if (onSelectFolder) onSelectFolder(folder.path); // notify parent about folder selection
+           }}
           className="w-full flex items-center justify-between px-4 py-2 text-gray-400 hover:bg-[#282c30] hover:text-gray-200 transition-colors group"
         >
           <div className="flex items-center gap-3">
             <BookOpen className="w-5 h-5" />
-            <span className="text-sm font-medium">{folder.name}</span>
+            <span key={folder.path} className="text-sm font-medium">{folder.name}</span>
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -96,7 +99,7 @@ export const Sidebar = ({ onOpenVault, vaultName }: SidebarProps) => {
           <Settings className="w-5 h-5 text-muted-foreground hover:text-foreground cursor-pointer transition-colors text-gray-400 hover:text-gray-200" />
         </div>
       </div>
-      <nav className="flex-1 overflow-y-auto py-2">
+      <nav className="flex-1 overflow-y-scroll scrollbar py-2">
 
         {/* All notes */}
         <button className="w-full flex items-center justify-between px-4 py-2 text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-textActive transition-colors group text-gray-400 hover:bg-[#282c30] hover:text-gray-200">
