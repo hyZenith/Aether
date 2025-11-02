@@ -7,12 +7,14 @@ import { openVaultAndRead, VaultFolder } from "../utils/vaultManager";
 
 
 interface SidebarProps {
-  onOpenVault?: () => void;
+  onOpenVault?: (vaultPath: string) => void;
   vaultName?: string;
   onSelectFolder?: (folderPath: string) => void;
+  onShowAllNotes?: () => void;
+  vaultRootPath?: string | null;
 }
 
-export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder }: SidebarProps) => {
+export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes, vaultRootPath }: SidebarProps) => {
   const [isStatusOpen, setIsStatusOpen] = useState(true);
   const [isTagsOpen, setIsTagsOpen] = useState(true);
   const [isNotebooksOpen, setIsNotebooksOpen] = useState(true);
@@ -23,10 +25,17 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder }: SidebarProps
   const handleOpenVault = async () => {
     if (window.electronAPI && typeof window.electronAPI.selectFolder === 'function') {
       try {
-        const folderData = await openVaultAndRead();
+        const selectedPath = await window.electronAPI.selectFolder();
+        if (!selectedPath) return;
+
+        const folderData = await openVaultAndRead(selectedPath);
         setFolders(folderData);
         console.log('Folder structure:', folderData);
 
+        // Notify parent about the vault root path
+        if (onOpenVault) {
+          onOpenVault(selectedPath);
+        }
       } catch (error) {
         console.error('Error selecting folder:', error);
       }
@@ -64,13 +73,12 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder }: SidebarProps
           </div>
         </span>
 
-        {isNotebooksOpen && (
+        {isNotebooksOpen && folder.subfolders && folder.subfolders.length > 0 && (
           <div className="ml-2 mt-1">
             {folder.subfolders.map((sub) => (
-              <FolderTree key={sub.path} folder={sub} />
+              <FolderTree key={sub.path} folder={sub} onSelectFolder={onSelectFolder} />
             ))}
           </div>
-
         )}
 
 
@@ -93,7 +101,14 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder }: SidebarProps
       <nav className="flex-1 overflow-y-scroll scrollbar py-2">
 
         {/* All notes */}
-        <button className="w-full flex items-center justify-between px-4 py-2 text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-textActive transition-colors group text-gray-400 hover:bg-[#282c30] hover:text-gray-200">
+        <button 
+          onClick={() => {
+            if (vaultRootPath && onShowAllNotes) {
+              onShowAllNotes();
+            }
+          }}
+          className="w-full flex items-center justify-between px-4 py-2 text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-textActive transition-colors group text-gray-400 hover:bg-[#282c30] hover:text-gray-200"
+        >
           <div className="flex items-center gap-3">
             <FileText className="w-5 h-5" />
             <span className="text-sm font-medium">All Notes</span>
