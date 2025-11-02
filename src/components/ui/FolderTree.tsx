@@ -10,14 +10,16 @@ interface FolderData {
 interface FolderTreeProps {
     folder: FolderData;
     level?: number;
+    onSelectFolder?: (folderPath: string) => void;
 }
 
-export const FolderTree = ({ folder, level = 0 }: FolderTreeProps) => {
+export const FolderTree = ({ folder, level = 0, onSelectFolder }: FolderTreeProps) => {
     const [isOpen, setIsOpen] = useState(false);
 
     const toggleFolder = (e: React.MouseEvent) => {
         e.stopPropagation();
         setIsOpen((prev) => !prev);
+        onSelectFolder?.(folder.path);
     };
 
     return (
@@ -44,9 +46,9 @@ export const FolderTree = ({ folder, level = 0 }: FolderTreeProps) => {
 
             {/* Recursive render of subfolders */}
             {isOpen && folder.subfolders && folder.subfolders.length > 0 && (
-                <div className="subfolder-sub">
+                <div className="subfolder-sub ml-2">
                     {folder.subfolders.map((sub) => (
-                        <FolderTree key={sub.path} folder={sub} level={level + 1} />
+                        <FolderTree key={sub.path} folder={sub} level={level + 1} onSelectFolder={onSelectFolder} />
                     ))}
                 </div>
             )}
