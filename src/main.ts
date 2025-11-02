@@ -51,7 +51,6 @@ ipcMain.handle("dialog:selectFolder", async () => {
 });
 
 //recursively read folder and files
-
 ipcMain.handle("fs:readFolder", async (_, folderPath: string) => {
   function readSubfolders(dirPath: string): any {
     const entries = fs.readdirSync(dirPath, { withFileTypes: true });
@@ -65,12 +64,25 @@ ipcMain.handle("fs:readFolder", async (_, folderPath: string) => {
     return subfolders;
   }
 
+  function readFiles(dirPath: string): string[] {
+    try {
+      const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+      return entries
+        .filter((entry) => !entry.isDirectory())
+        .map((entry) => entry.name);
+    } catch (err) {
+      console.error("Error reading files from directory:", err);
+      return [];
+    }
+  }
+
   const rootName = path.basename(folderPath);
   return [
     {
       name: rootName,
       path: folderPath,
       subfolders: readSubfolders(folderPath),
+      files: readFiles(folderPath),
     },
   ];
 });
@@ -79,10 +91,10 @@ ipcMain.handle("fs:readFolder", async (_, folderPath: string) => {
 ipcMain.handle("fs:readFile", async (_, filePath: string) => {
   try {
     const content = fs.readFileSync(filePath, "utf8");
-    return { success: true, content };
+    return content;
   } catch (err: any) {
     console.error("Error reading file:", err);
-    return { success: false, error: err.message };
+    throw new Error(`Failed to read file: ${err.message}`);
   }
 });
 
