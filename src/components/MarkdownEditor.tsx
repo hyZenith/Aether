@@ -3,11 +3,22 @@ import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { Eye, Columns2, Hash, Bold, Italic, Strikethrough, Link, List, ListOrdered, CheckSquare, Quote, Code, Code2, Minus, Image, X, Plus, Book, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
+import { buildContentWithFrontmatter, parseFrontmatterFromContent } from "../utils/vaultManager";
 
 type ViewMode = "edit" | "preview" | "split";
 
-const Index = () => {
+type MarkdownEditorProps = {
+  content: string;
+  onContentChange?: (value: string) => void;
+  onSave?: (value: string) => void;
+  fileName?: string | null;
+  disabled?: boolean;
+};
+
+const Index = ({ content, onContentChange, onSave, fileName, disabled }: MarkdownEditorProps) => {
   const [markdown, setMarkdown] = useState<string>("");
+  const [title, setTitle] = useState<string>("");
+  const [pinned, setPinned] = useState<boolean>(false);
 
   const [viewMode, setViewMode] = useState<ViewMode>("edit");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -16,7 +27,7 @@ const Index = () => {
   const [showTagInput, setShowTagInput] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
   const [selectedFolder, setSelectedFolder] = useState("Awesome SaaS : Mobile app");
-  const statuses = ["Active", "On Hold", "Completed", "Archived"];
+  const statuses = ["Active", "On Hold", "Completed", "Dropped"];
 
   const folders = [
     "Awesome SaaS : Mobile app",
@@ -82,16 +93,69 @@ const Index = () => {
     { icon: Image, action: () => insertMarkdown("![alt](", ")"), title: "Image" },
   ];
 
+  // keep internal state in sync with external content (parse frontmatter)
+  useEffect(() => {
+    const full = content || "";
+    const { meta, body } = parseFrontmatterFromContent(full);
+    setMarkdown(body);
+    setTitle(meta.title || "");
+    setPinned(!!meta.pinned);
+    setTags(meta.tags || []);
+    setSelectedStatus(meta.status ? meta.status.replace(/\b\w/g, (c) => c.toUpperCase()) : null);
+  }, [content]);
+
+  // propagate changes up if requested
+  const handleChange = (value: string) => {
+    setMarkdown(value);
+    if (onContentChange) onContentChange(value);
+  };
+
+  const doSave = () => {
+    if (!onSave || disabled) return;
+    const meta = {
+      title: title || undefined,
+      pinned,
+      tags,
+      status: selectedStatus ? (selectedStatus.toLowerCase() as any) : undefined,
+    };
+    const full = buildContentWithFrontmatter(meta, markdown);
+    onSave(full);
+  };
+
+  // Ctrl/Cmd + S to save
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const isMac = navigator.platform.toUpperCase().includes("MAC");
+      if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "s") {
+        e.preventDefault();
+        doSave();
+      }
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onSave, markdown, disabled, title, pinned, tags, selectedStatus]);
+
   return (
     <main className="flex-1 flex flex-col">
       {/* Header */}
       <div className="bg-[#F8F7F7]">
-        <div className="p-4">
+        <div className="p-4 flex items-center justify-between gap-4">
           <input
             type="text"
             placeholder="Note title..."
             className="w-full bg-transparent text-2xl font-semibold  outline-none placeholder-gray-600"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            disabled={disabled}
           />
+          <button
+            onClick={doSave}
+            disabled={disabled}
+            className={`px-3 py-2 rounded text-sm font-semibold ${disabled ? "bg-gray-300 text-gray-500" : "bg-blue-600 text-white hover:bg-blue-500"}`}
+            title="Save (Ctrl+S)"
+          >
+            Save
+          </button>
         </div>
         {/* Tags selection : Display and manage note tags */}
         <div className="flex items-center gap-3 flex-wrap">
@@ -172,7 +236,9 @@ const Index = () => {
                 value={newTag}
                 placeholder="Add tag"
                 onChange={(e) => setNewTag(e.target.value)}
-                onKeyDown={(e)=> e.key === "Enter" && addTag()}
+                onKeyDown={(e)=> {
+                  if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(); }
+                }}
                 className="bg-transparent font-semibold outline-none text-gray-400 text-sm"
               />
             </div>
@@ -207,9 +273,10 @@ const Index = () => {
             <textarea
               ref={textareaRef}
               value={markdown}
-              onChange={(e) => setMarkdown(e.target.value)}
+              onChange={(e) => handleChange(e.target.value)}
               className="flex-1 bg-[#1f2326] text-gray-300 p-6 outline-none resize-none font-mono text-sm leading-relaxed"
               placeholder="Start writing..."
+              disabled={!!disabled}
             />
           </div>
         )}
