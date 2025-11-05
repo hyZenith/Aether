@@ -109,6 +109,57 @@ ipcMain.handle("fs:writeFile", async (_, filePath: string, newContent: string) =
   }
 });
 
+// Rename (move) a file
+ipcMain.handle("fs:rename", async (_, oldPath: string, newPath: string) => {
+  try {
+    fs.renameSync(oldPath, newPath);
+    return { success: true };
+  } catch (err: any) {
+    console.error("Error renaming file:", err);
+    return { success: false, error: err.message };
+  }
+});
+
+// Delete (unlink) a file
+ipcMain.handle("fs:delete", async (_, targetPath: string) => {
+  try {
+    fs.unlinkSync(targetPath);
+    return { success: true };
+  } catch (err: any) {
+    console.error("Error deleting file:", err);
+    return { success: false, error: err.message };
+  }
+});
+
+// Create a new markdown file in a directory with a unique name
+ipcMain.handle("fs:createMarkdown", async (
+  _,
+  dirPath: string,
+  baseName?: string,
+  initialContent?: string
+) => {
+  try {
+    const safeBase = (baseName && baseName.trim()) ? baseName.trim() : "Untitled";
+    const ensureUniquePath = (name: string) => {
+      let idx = 0;
+      let candidate = path.join(dirPath, `${name}.md`);
+      while (fs.existsSync(candidate)) {
+        idx += 1;
+        candidate = path.join(dirPath, `${name} ${idx}.md`);
+      }
+      return candidate;
+    };
+
+    const targetPath = ensureUniquePath(safeBase);
+    const content = typeof initialContent === "string" ? initialContent : "\n";
+    fs.writeFileSync(targetPath, content, "utf8");
+    return { success: true, path: targetPath };
+  } catch (err: any) {
+    console.error("Error creating markdown file:", err);
+    return { success: false, error: err.message };
+  }
+});
+
 
 // Quit when all windows are closed, except on macOS. There, it's common
 // for applications and their menu bar to stay active until the user quits
