@@ -10,12 +10,13 @@ type ViewMode = "edit" | "preview" | "split";
 type MarkdownEditorProps = {
   content: string;
   onContentChange?: (value: string) => void;
-  onSave?: (value: string) => void;
+  onSave?: (value: string) => void; // autosave callback (debounced)
+  onTitleChange?: (newTitle: string) => Promise<void> | void; // request parent to rename file
   fileName?: string | null;
   disabled?: boolean;
 };
 
-const Index = ({ content, onContentChange, onSave, fileName, disabled }: MarkdownEditorProps) => {
+const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, disabled }: MarkdownEditorProps) => {
   const [markdown, setMarkdown] = useState<string>("");
   const [title, setTitle] = useState<string>("");
   const [pinned, setPinned] = useState<boolean>(false);
@@ -37,6 +38,7 @@ const Index = ({ content, onContentChange, onSave, fileName, disabled }: Markdow
   ];
 
   const [open, setOpen] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
 
   // update the tag: when the user adds a new tag
   // useEffect(() => {
@@ -98,11 +100,16 @@ const Index = ({ content, onContentChange, onSave, fileName, disabled }: Markdow
     const full = content || "";
     const { meta, body } = parseFrontmatterFromContent(full);
     setMarkdown(body);
-    setTitle(meta.title || "");
+    // Title should reflect filename primarily
+    if (fileName) {
+      setTitle(fileName);
+    } else {
+      setTitle(meta.title || "");
+    }
     setPinned(!!meta.pinned);
     setTags(meta.tags || []);
     setSelectedStatus(meta.status ? meta.status.replace(/\b\w/g, (c) => c.toUpperCase()) : null);
-  }, [content]);
+  }, [content, fileName]);
 
   // propagate changes up if requested
   const handleChange = (value: string) => {
@@ -122,18 +129,33 @@ const Index = ({ content, onContentChange, onSave, fileName, disabled }: Markdow
     onSave(full);
   };
 
-  // Ctrl/Cmd + S to save
+  // Autosave: debounce changes (content/meta/title)
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      const isMac = navigator.platform.toUpperCase().includes("MAC");
-      if ((isMac ? e.metaKey : e.ctrlKey) && e.key.toLowerCase() === "s") {
-        e.preventDefault();
-        doSave();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, [onSave, markdown, disabled, title, pinned, tags, selectedStatus]);
+    if (disabled || isRenaming) return;
+    const id = window.setTimeout(() => {
+      doSave();
+    }, 600);
+    return () => window.clearTimeout(id);
+  }, [markdown, title, pinned, tags, selectedStatus, disabled, isRenaming]);
+
+  // When title changes locally
+  const handleLocalTitleChange = (value: string) => {
+    setTitle(value);
+  };
+
+  // Commit title rename on Enter or blur
+  const commitTitleRename = async () => {
+    const trimmed = (title || "").trim();
+    if (!onTitleChange) return;
+    if (!trimmed) return;
+    if (fileName && trimmed === fileName) return;
+    try {
+      setIsRenaming(true);
+      await Promise.resolve(onTitleChange(trimmed));
+    } finally {
+      setIsRenaming(false);
+    }
+  };
 
   return (
     <main className="flex-1 flex flex-col">
@@ -145,17 +167,17 @@ const Index = ({ content, onContentChange, onSave, fileName, disabled }: Markdow
             placeholder="Note title..."
             className="w-full bg-transparent text-2xl font-semibold  outline-none placeholder-gray-600"
             value={title}
-            onChange={(e) => setTitle(e.target.value)}
+            onChange={(e) => handleLocalTitleChange(e.target.value)}
+            onBlur={commitTitleRename}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                commitTitleRename();
+              }
+            }}
             disabled={disabled}
           />
-          <button
-            onClick={doSave}
-            disabled={disabled}
-            className={`px-3 py-2 rounded text-sm font-semibold ${disabled ? "bg-gray-300 text-gray-500" : "bg-blue-600 text-white hover:bg-blue-500"}`}
-            title="Save (Ctrl+S)"
-          >
-            Save
-          </button>
+          {/* Save button removed: autosave is active */}
         </div>
         {/* Tags selection : Display and manage note tags */}
         <div className="flex items-center gap-3 flex-wrap">

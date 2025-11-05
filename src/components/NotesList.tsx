@@ -34,13 +34,17 @@ const NotesList = ({ files, onSelectNote }: NotesListProps) => {
         {/* individual file Note item */}
         {files.length > 0 ? (
           files.map((file) => (
-            <button
+            <div
               key={file.path}
               onClick={() => onSelectNote(file)}
-              className="block w-full text-left px-4 py-2 text-black hover:bg-gray-200 transition-colors"
+              className="block w-full  hover:cursor-pointer hover:bg-gray-200 px-4 py-2 text-gray-700 hover:text-gray-900 border border-black h-23  "
             >
-              {file.name}
-            </button>
+              <div className="font-bold ">
+                {file.name}
+              </div>
+              <p className="text-gray-500 text-sm">2025-11-03</p>
+              <p>Lorem ipsum dolor sit </p>
+            </div>
           ))
         ) : (
           <p className="text-gray-500 text-sm px-4 py-2">No markdown files found</p>
