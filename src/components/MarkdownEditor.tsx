@@ -161,7 +161,7 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, disa
     <main className="flex-1 flex flex-col">
       {/* Header */}
       <div className="bg-[#F8F7F7]">
-        <div className="p-4 flex items-center justify-between gap-4">
+        <div className="p-3 flex items-center justify-between gap-4">
           <input
             type="text"
             placeholder="Note title..."
@@ -182,7 +182,7 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, disa
         {/* Tags selection : Display and manage note tags */}
         <div className="flex items-center gap-3 flex-wrap">
           {/* Left Section: Checkbox and Folder */}
-          <div className="flex items-center gap-2 px-3">
+          <div className="flex items-center gap-2 pl-3">
             {/* Task Completion Checkbox */}
             {/* <div  className="w-4 h-4 rounded border-gray-600 bg-gray-800 text-blue-600" /> */}
             <Book className="w-5 h-5 text-gray-600" />
@@ -212,7 +212,7 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, disa
             {/* Status Selector */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center gap-1 px-3 py-1   text-gray-400 font-semibold text-sm  transition-colors">
+                <button className="flex items-center gap-1 px3pr-7 bg-blcbg-blend-colorblackblend-colorbg-blc3 py-1   text-gray-400 font-semibold text-sm  transition-colors">
                   {selectedStatus || "Status"}
                   <ChevronDown className="w-4 h-4" />
                 </button>
@@ -237,8 +237,7 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, disa
             {tags.map((tag) => (
               <span
                 key={tag}
-                className={`inline-flex items-center gap-1 px-3 py-1 rounded-full text-sm font-medium" text-gray-200"
-                  }`}
+                className={"inline-flex items-center gap-1 px-1 py-1 rounded-full text-sm font-medium "}
               >
                 {tag}
                 <button
