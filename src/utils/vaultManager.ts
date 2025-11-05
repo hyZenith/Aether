@@ -4,6 +4,15 @@ export interface VaultFile {
   path: string;
 }
 
+export type NoteStatus = "active" | "on hold" | "completed" | "dropped";
+
+export interface NoteMeta {
+  title?: string;
+  pinned?: boolean;
+  tags?: string[];
+  status?: NoteStatus;
+}
+
 export interface VaultFolder {
   name: string;
   path: string;
@@ -150,4 +159,142 @@ export const saveMarkdownFile = async (filePath: string, content: string): Promi
     throw new Error("electronAPI.writeFile not available");
   }
   await window.electronAPI.writeFile(filePath, content);
+};
+
+// --- File rename/save-as helpers ---
+const sanitizeFileName = (name: string): string => {
+  // Replace invalid characters for filenames on most OS
+  return name
+    .trim()
+    .replace(/[\\/:*?"<>|]/g, "-")
+    .replace(/\s+/g, " ")
+    .replace(/^\.+$/, "note") || "Untitled";
+};
+
+export const deriveNewPathWithName = (oldPath: string, newBaseName: string): string => {
+  const sanitized = sanitizeFileName(newBaseName);
+  const separator = oldPath.includes("\\") ? "\\" : "/";
+  const parts = oldPath.split(separator);
+  // replace last segment with new name + .md
+  parts[parts.length - 1] = `${sanitized}.md`;
+  return parts.join(separator);
+};
+
+export const renameOrSaveAsNew = async (
+  oldPath: string,
+  newBaseName: string,
+  content: string
+): Promise<string> => {
+  const targetPath = deriveNewPathWithName(oldPath, newBaseName);
+  // If path is identical, just save
+  if (targetPath === oldPath) {
+    await saveMarkdownFile(oldPath, content);
+    return oldPath;
+  }
+
+  // Prefer a true filesystem rename/move if available
+  try {
+    const anyAPI = window.electronAPI as any;
+    if (anyAPI && typeof anyAPI.renameFile === "function") {
+      await anyAPI.renameFile(oldPath, targetPath);
+      // After rename, also save latest content to ensure it reflects current state
+      await saveMarkdownFile(targetPath, content);
+      return targetPath;
+    }
+    if (anyAPI && typeof anyAPI.moveFile === "function") {
+      await anyAPI.moveFile(oldPath, targetPath);
+      await saveMarkdownFile(targetPath, content);
+      return targetPath;
+    }
+  } catch {
+    // Fall through to copy+delete fallback below
+  }
+
+  // If no true rename/move is available, only proceed with copy+delete when delete is supported.
+  const anyAPI = window.electronAPI as any;
+  const canDelete = !!(anyAPI && (typeof anyAPI.deleteFile === "function" || typeof anyAPI.unlink === "function"));
+  if (!canDelete) {
+    // Avoid creating duplicates: keep original file name and just save content
+    await saveMarkdownFile(oldPath, content);
+    return oldPath;
+  }
+
+  // Fallback: Write new file then delete the old file
+  await saveMarkdownFile(targetPath, content);
+  try {
+    if (typeof anyAPI.deleteFile === "function") {
+      await anyAPI.deleteFile(oldPath);
+    } else if (typeof anyAPI.unlink === "function") {
+      await anyAPI.unlink(oldPath);
+    }
+  } catch {}
+  return targetPath;
+};
+
+// --- Create new markdown file in a directory ---
+export const createMarkdownFile = async (
+  dirPath: string,
+  baseName?: string,
+  initialContent?: string
+): Promise<VaultFile> => {
+  const res = await (window as any).electronAPI?.createMarkdown?.(dirPath, baseName, initialContent);
+  if (!res || !res.success) {
+    throw new Error(res?.error || "Failed to create markdown file");
+  }
+  const separator = res.path.includes("\\") ? "\\" : "/";
+  const nameWithExt = res.path.split(separator).pop() || "Untitled.md";
+  const name = nameWithExt.replace(/\.md$/i, "");
+  return { name, path: res.path };
+};
+
+// --- Frontmatter helpers (simple YAML-like) ---
+const FRONTMATTER_DELIM = "---";
+
+export const parseFrontmatterFromContent = (content: string): { meta: NoteMeta; body: string } => {
+  const trimmed = content.startsWith("\ufeff") ? content.slice(1) : content; // remove BOM if present
+  const lines = trimmed.split(/\r?\n/);
+  if (lines[0]?.trim() !== FRONTMATTER_DELIM) {
+    return { meta: {}, body: content };
+  }
+  let i = 1;
+  const meta: NoteMeta = {};
+  for (; i < lines.length; i++) {
+    const line = lines[i];
+    if (line.trim() === FRONTMATTER_DELIM) { i++; break; }
+    const idx = line.indexOf(":");
+    if (idx === -1) continue;
+    const key = line.slice(0, idx).trim().toLowerCase();
+    const raw = line.slice(idx + 1).trim();
+    if (key === "title") meta.title = raw.replace(/^"|"$/g, "");
+    else if (key === "pinned" || key === "pinned notes") meta.pinned = raw.toLowerCase() === "true";
+    else if (key === "status") meta.status = raw.toLowerCase() as NoteStatus;
+    else if (key === "tags") {
+      // supports: tags: [a, b] or tags: [] or tags: a, b
+      if (raw.startsWith("[")) {
+        const inner = raw.slice(1, -1);
+        meta.tags = inner.split(",").map(s => s.trim()).filter(Boolean);
+      } else if (raw.length) {
+        meta.tags = raw.split(",").map(s => s.trim()).filter(Boolean);
+      } else {
+        meta.tags = [];
+      }
+    }
+  }
+  const body = lines.slice(i).join("\n");
+  return { meta, body };
+};
+
+export const buildContentWithFrontmatter = (meta: NoteMeta, body: string): string => {
+  const lines: string[] = [FRONTMATTER_DELIM];
+  if (meta.title) lines.push(`title: ${meta.title}`);
+  if (typeof meta.pinned === "boolean") lines.push(`Pinned Notes : ${meta.pinned}`);
+  if (meta.tags) lines.push(`tags: [${meta.tags.join(", ")}]`);
+  if (meta.status) lines.push(`status: ${meta.status}`);
+  lines.push(FRONTMATTER_DELIM, "");
+  return lines.join("\n") + body;
+};
+
+export const readNoteMetadata = async (filePath: string): Promise<NoteMeta> => {
+  const content = await readMarkdownFileContent(filePath);
+  return parseFrontmatterFromContent(content).meta;
 };
