@@ -23,6 +23,8 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, disa
 
   const [viewMode, setViewMode] = useState<ViewMode>("edit");
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const lastSavedContentRef = useRef<string>("");
+  const prevFileNameRef = useRef<string | null | undefined>(fileName);
   const [tags, setTags] = useState<string[]>([]);
   const [newTag, setNewTag] = useState("");
   const [showTagInput, setShowTagInput] = useState(false);
@@ -100,12 +102,28 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, disa
     const full = content || "";
     const { meta, body } = parseFrontmatterFromContent(full);
     setMarkdown(body);
-    // Title should reflect filename primarily
-    if (fileName) {
-      setTitle(fileName);
-    } else {
-      setTitle(meta.title || "");
+    
+    // Check if this is the first load
+    const isFirstLoad = lastSavedContentRef.current === "";
+    if (isFirstLoad) {
+      lastSavedContentRef.current = full;
     }
+    
+    // Only update title if this is an external change (not from our own save)
+    // or if fileName changed, or on first load
+    const isExternalChange = full !== lastSavedContentRef.current;
+    const fileNameChanged = prevFileNameRef.current !== fileName;
+    prevFileNameRef.current = fileName;
+    
+    if (isExternalChange || fileNameChanged || isFirstLoad) {
+      // Title should reflect filename primarily
+      if (fileName) {
+        setTitle(fileName);
+      } else {
+        setTitle(meta.title || "");
+      }
+    }
+    
     setPinned(!!meta.pinned);
     setTags(meta.tags || []);
     setSelectedStatus(meta.status ? meta.status.replace(/\b\w/g, (c) => c.toUpperCase()) : null);
@@ -126,6 +144,7 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, disa
       status: selectedStatus ? (selectedStatus.toLowerCase() as any) : undefined,
     };
     const full = buildContentWithFrontmatter(meta, markdown);
+    lastSavedContentRef.current = full;
     onSave(full);
   };
 
@@ -287,7 +306,7 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, disa
       </div>
 
       {/* Editor Area */}
-      <div className="flex-1 flex relative">
+      <div className="flex-1 flex relative overflow-hidden">
         {/* Edit View */}
         {(viewMode === "edit" || viewMode === "split") && (
           <div className={`${viewMode === "split" ? "w-1/2" : "w-full"} flex flex-col border-r border-gray-800`}>
@@ -305,7 +324,7 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, disa
         {/* Preview View */}
         {(viewMode === "preview" || viewMode === "split") && (
           <div className={`${viewMode === "split" ? "w-1/2" : "w-full"} overflow-auto`}>
-            <div className="p-6 prose prose-invert prose-slate max-w-none">
+            <div className="p-6 prose prose-invert prose-slate max-w-none whitespace-pre-wrap [&_pre]:overflow-x-auto [&_pre]:whitespace-pre-wrap wrap-break-word">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {markdown}
               </ReactMarkdown>
@@ -314,26 +333,26 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, disa
         )}
 
         {/* View Mode Toggle Buttons */}
-        <div className="absolute bottom-4 right-4 flex gap-2">
+        <div className="absolute bottom-2 right-1 flex flex-col gap-2 bg-gray-800 p-2 rounded-2xl">
           <button
             onClick={() => setViewMode(viewMode === "preview" ? "edit" : "preview")}
             className={`p-2 rounded ${viewMode === "preview"
-              ? "bg-blue-600 text-white"
+              ? " text-gray-600"
               : "bg-gray-800 text-gray-400 hover:text-gray-200"
               } transition-colors`}
             title="Toggle preview"
           >
-            <Eye className="w-5 h-5" />
+            <Eye className="w-4 h-4" />
           </button>
           <button
             onClick={() => setViewMode(viewMode === "split" ? "edit" : "split")}
             className={`p-2 rounded ${viewMode === "split"
-              ? "bg-blue-600 text-white"
+              ? "text-gray-600"
               : "bg-gray-800 text-gray-400 hover:text-gray-200"
               } transition-colors`}
             title="Toggle split view"
           >
-            <Columns2 className="w-5 h-5" />
+            <Columns2 className="w-4 h-4" />
           </button>
         </div>
       </div>
