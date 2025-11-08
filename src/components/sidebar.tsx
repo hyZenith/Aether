@@ -6,6 +6,8 @@ import { openVaultAndRead, VaultFolder } from "../utils/vaultManager";
 
 
 
+type ActiveFilter = { type: 'status' | 'tag' | null; value: string | null };
+
 interface SidebarProps {
   onOpenVault?: (vaultPath: string) => void;
   vaultName?: string;
@@ -14,10 +16,13 @@ interface SidebarProps {
   vaultRootPath?: string | null;
   onFilterByStatus?: (status: 'active' | 'on hold' | 'completed' | 'dropped') => void;
   onFilterByTag?: (tag: string) => void;
+  onClearFilter?: () => void;
   tags?: string[];
+  statusCounts?: { active: number; 'on hold': number; completed: number; dropped: number };
+  activeFilter?: ActiveFilter;
 }
 
-export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes, vaultRootPath, onFilterByStatus, onFilterByTag, tags }: SidebarProps) => {
+export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes, vaultRootPath, onFilterByStatus, onFilterByTag, onClearFilter, tags, statusCounts, activeFilter }: SidebarProps) => {
   const [isStatusOpen, setIsStatusOpen] = useState(true);
   const [isTagsOpen, setIsTagsOpen] = useState(true);
   const [isNotebooksOpen, setIsNotebooksOpen] = useState(true);
@@ -91,7 +96,7 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
 
 
   return (
-    <aside className="flex flex-col h-screen w-64 bg-[#151515] border-r border-[#2d3236]">
+    <aside className="flex flex-col h-screen w-[250px] bg-[#151515] border-r border-[#2d3236]">
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#2d3236] border-sidebar-border">
         <button onClick={handleOpenVault} className="flex items-center gap-2 text-xs font-semibold px-2 py-1 rounded text-gray-400 hover:bg-[#282c30] hover:text-gray-200 transition-colors">
           <FolderOpen className="w-4 h-4" />
@@ -109,14 +114,23 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
             if (vaultRootPath && onShowAllNotes) {
               onShowAllNotes();
             }
+            if (onClearFilter) {
+              onClearFilter();
+            }
           }}
-          className="w-full flex items-center justify-between px-4 py-2 text-sidebar-text hover:bg-sidebar-hover hover:text-sidebar-textActive transition-colors group text-gray-400 hover:bg-[#282c30] hover:text-gray-200"
+          className={`w-full flex items-center justify-between px-4 py-2 transition-colors group ${
+            activeFilter?.type === null 
+              ? 'bg-[#282c30] text-gray-200' 
+              : 'text-gray-400 hover:bg-[#282c30] hover:text-gray-200'
+          }`}
         >
           <div className="flex items-center gap-3">
             <FileText className="w-5 h-5" />
             <span className="text-sm font-medium">All Notes</span>
           </div>
-          <span className="text-xs text-sidebar-text/60 group-hover:text-sidebar-text/80">2</span>
+          <span className="text-xs text-gray-500 group-hover:text-gray-400">
+            {statusCounts ? Object.values(statusCounts).reduce((a, b) => a + b, 0) : 0}
+          </span>
         </button>
 
         {/* Notebooks */}
@@ -156,36 +170,72 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
 
           {isStatusOpen && (
             <div className="mt-1 space-y-1">
-              <button onClick={() => onFilterByStatus?.('active')} className="w-full flex items-center justify-between pl-8 pr-4 py-2 text-gray-400 hover:bg-[#282c30] hover:text-gray-200 transition-colors group">
+              <button 
+                onClick={() => onFilterByStatus?.('active')} 
+                className={`w-full flex items-center justify-between pl-8 pr-4 py-2 transition-colors group ${
+                  activeFilter?.type === 'status' && activeFilter?.value === 'active'
+                    ? 'bg-[#282c30] text-gray-200'
+                    : 'text-gray-400 hover:bg-[#282c30] hover:text-gray-200'
+                }`}
+              >
                 <div className="flex items-center gap-3">
                   <Circle className="w-4 h-4 text-blue-500 fill-blue-500" />
                   <span className="text-sm">Active</span>
                 </div>
-                <span className="text-xs text-gray-500 group-hover:text-gray-400">0</span>
+                <span className="text-xs text-gray-500 group-hover:text-gray-400">
+                  {statusCounts?.active || 0}
+                </span>
               </button>
 
-              <button onClick={() => onFilterByStatus?.('on hold')} className="w-full flex items-center justify-between pl-8 pr-4 py-2 text-gray-400 hover:bg-[#282c30] hover:text-gray-200 transition-colors group">
+              <button 
+                onClick={() => onFilterByStatus?.('on hold')} 
+                className={`w-full flex items-center justify-between pl-8 pr-4 py-2 transition-colors group ${
+                  activeFilter?.type === 'status' && activeFilter?.value === 'on hold'
+                    ? 'bg-[#282c30] text-gray-200'
+                    : 'text-gray-400 hover:bg-[#282c30] hover:text-gray-200'
+                }`}
+              >
                 <div className="flex items-center gap-3">
                   <PauseCircle className="w-4 h-4 text-amber-500" />
                   <span className="text-sm">On Hold</span>
                 </div>
-                <span className="text-xs text-gray-500 group-hover:text-gray-400">0</span>
+                <span className="text-xs text-gray-500 group-hover:text-gray-400">
+                  {statusCounts?.['on hold'] || 0}
+                </span>
               </button>
 
-              <button onClick={() => onFilterByStatus?.('completed')} className="w-full flex items-center justify-between pl-8 pr-4 py-2 text-gray-400 hover:bg-[#282c30] hover:text-gray-200 transition-colors group">
+              <button 
+                onClick={() => onFilterByStatus?.('completed')} 
+                className={`w-full flex items-center justify-between pl-8 pr-4 py-2 transition-colors group ${
+                  activeFilter?.type === 'status' && activeFilter?.value === 'completed'
+                    ? 'bg-[#282c30] text-gray-200'
+                    : 'text-gray-400 hover:bg-[#282c30] hover:text-gray-200'
+                }`}
+              >
                 <div className="flex items-center gap-3">
                   <CheckCircle className="w-4 h-4 text-green-500" />
                   <span className="text-sm">Completed</span>
                 </div>
-                <span className="text-xs text-gray-500 group-hover:text-gray-400">0</span>
+                <span className="text-xs text-gray-500 group-hover:text-gray-400">
+                  {statusCounts?.completed || 0}
+                </span>
               </button>
 
-              <button onClick={() => onFilterByStatus?.('dropped')} className="w-full flex items-center justify-between pl-8 pr-4 py-2 text-gray-400 hover:bg-[#282c30] hover:text-gray-200 transition-colors group">
+              <button 
+                onClick={() => onFilterByStatus?.('dropped')} 
+                className={`w-full flex items-center justify-between pl-8 pr-4 py-2 transition-colors group ${
+                  activeFilter?.type === 'status' && activeFilter?.value === 'dropped'
+                    ? 'bg-[#282c30] text-gray-200'
+                    : 'text-gray-400 hover:bg-[#282c30] hover:text-gray-200'
+                }`}
+              >
                 <div className="flex items-center gap-3">
                   <XCircle className="w-4 h-4 text-red-500" />
                   <span className="text-sm">Dropped</span>
                 </div>
-                <span className="text-xs text-gray-500 group-hover:text-gray-400">0</span>
+                <span className="text-xs text-gray-500 group-hover:text-gray-400">
+                  {statusCounts?.dropped || 0}
+                </span>
               </button>
             </div>
           )}
@@ -210,14 +260,25 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
 
           {isTagsOpen && (
             <div className="mt-1">
-              {(tags && tags.length ? tags : ["Tutorial"]).map((tag) => (
-                <button key={tag} onClick={() => onFilterByTag?.(tag)} className="w-full flex items-center justify-between pl-8 pr-4 py-2 text-gray-400 hover:bg-[#282c30] hover:text-gray-200 transition-colors group">
+              {(tags && tags.length ? tags : []).map((tag) => (
+                <button 
+                  key={tag} 
+                  onClick={() => onFilterByTag?.(tag)} 
+                  className={`w-full flex items-center justify-between pl-8 pr-4 py-2 transition-colors group ${
+                    activeFilter?.type === 'tag' && activeFilter?.value === tag
+                      ? 'bg-[#282c30] text-gray-200'
+                      : 'text-gray-400 hover:bg-[#282c30] hover:text-gray-200'
+                  }`}
+                >
                   <div className="flex items-center gap-3">
                     <Circle className="w-2 h-2 fill-gray-400" />
                     <span className="text-sm">{tag}</span>
                   </div>
                 </button>
               ))}
+              {(!tags || tags.length === 0) && (
+                <p className="text-xs text-gray-500 pl-8 py-2">No tags available</p>
+              )}
             </div>
           )}
         </div>
