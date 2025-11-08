@@ -21,6 +21,7 @@ const createWindow = () => {
     },
   });
 
+  mainWindow.maximize();
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
@@ -52,18 +53,6 @@ ipcMain.handle("dialog:selectFolder", async () => {
 
 //recursively read folder and files
 ipcMain.handle("fs:readFolder", async (_, folderPath: string) => {
-  function readSubfolders(dirPath: string): any {
-    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
-    const subfolders = entries
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => ({
-        name: entry.name,
-        path: path.join(dirPath, entry.name),
-        subfolders: readSubfolders(path.join(dirPath, entry.name)),
-      }));
-    return subfolders;
-  }
-
   function readFiles(dirPath: string): string[] {
     try {
       const entries = fs.readdirSync(dirPath, { withFileTypes: true });
@@ -74,6 +63,22 @@ ipcMain.handle("fs:readFolder", async (_, folderPath: string) => {
       console.error("Error reading files from directory:", err);
       return [];
     }
+  }
+
+  function readSubfolders(dirPath: string): any {
+    const entries = fs.readdirSync(dirPath, { withFileTypes: true });
+    const subfolders = entries
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => {
+        const subfolderPath = path.join(dirPath, entry.name);
+        return {
+          name: entry.name,
+          path: subfolderPath,
+          subfolders: readSubfolders(subfolderPath),
+          files: readFiles(subfolderPath),
+        };
+      });
+    return subfolders;
   }
 
   const rootName = path.basename(folderPath);
