@@ -5,19 +5,20 @@ import { VaultFile } from 'src/utils/vaultManager';
 type NotesListProps = {
   files: VaultFile[];
   onSelectNote: (file: VaultFile) => void;
+  onCreateNote?: () => void;
 };
 
-const NotesList = ({ files, onSelectNote }: NotesListProps) => {
+const NotesList = ({ files, onSelectNote, onCreateNote }: NotesListProps) => {
   return (
-    <div className='w-96 bg-[#F2F2F1] '>
-      <div className='notes-header border-b border-white pb-3'>
+    <div className='w-[300px] bg-[#F2F2F1] flex flex-col h-screen'>
+      <div className='notes-header border-b border-white pb-3 shrink-0'>
         <div className='flex items-center justify-between py-4 px-6  border-gray-300'>
           <h2 className='text-xl font-semibold'>All Notes</h2>
           <div className='flex gap-5'>
             <button className='w-10 h-10' >
               <RefreshCw />
             </button>
-            <button className='w-10 h-10'>
+            <button className='w-10 h-10 cursor-pointer' onClick={onCreateNote} title="New note">
               <NotebookPen />
             </button>
           </div>
@@ -30,7 +31,7 @@ const NotesList = ({ files, onSelectNote }: NotesListProps) => {
       </div>
 
       {/* notes or files section */}
-      <div className='notes-item  '>
+      <div className='notes-item overflow-y-auto flex-1 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]'>
         {/* individual file Note item */}
         {files.length > 0 ? (
           files.map((file) => (
