@@ -13,10 +13,11 @@ type MarkdownEditorProps = {
   onSave?: (value: string) => void; // autosave callback (debounced)
   onTitleChange?: (newTitle: string) => Promise<void> | void; // request parent to rename file
   fileName?: string | null;
+  filePath?: string | null;
   disabled?: boolean;
 };
 
-const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, disabled }: MarkdownEditorProps) => {
+const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, filePath, disabled }: MarkdownEditorProps) => {
   const [markdown, setMarkdown] = useState<string>("");
   const [title, setTitle] = useState<string>("");
   const [pinned, setPinned] = useState<boolean>(false);
@@ -29,15 +30,20 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, disa
   const [newTag, setNewTag] = useState("");
   const [showTagInput, setShowTagInput] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState<string | null>(null);
-  const [selectedFolder, setSelectedFolder] = useState("Awesome SaaS : Mobile app");
   const statuses = ["Active", "On Hold", "Completed", "Dropped"];
 
-  const folders = [
-    "Awesome SaaS : Mobile app",
-    "Personal Projects",
-    "Work Notes",
-    "Learning",
-  ];
+  // Extract parent folder name from file path
+  const getParentFolderName = (path: string | null | undefined): string => {
+    if (!path) return "No folder";
+    const separator = path.includes("\\") ? "\\" : "/";
+    const pathParts = path.split(separator);
+    // Remove the filename (last part)
+    pathParts.pop();
+    // Get the parent folder name (last part of the remaining path)
+    return pathParts.length > 0 ? pathParts[pathParts.length - 1] : "Root";
+  };
+
+  const parentFolderName = getParentFolderName(filePath);
 
   const [open, setOpen] = useState(false);
   const [isRenaming, setIsRenaming] = useState(false);
@@ -208,24 +214,11 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, disa
             {/* Folder Selector */}
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <button className="flex items-center  gap-2 text-sm font-semibold text-gray-500  transition-colors">
-                  {selectedFolder}
-                  <ChevronDown className="w-4 h-4" />
+                <button className="flex items-center  gap-2 pr-2 text-sm font-semibold text-gray-500  transition-colors">
+                  {parentFolderName}
+                  {/* <ChevronDown className="w-4 h-4" /> */}
                 </button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className=" translate-x-4  translate-y-1 bg-white shadow-xl/30 rounded-sm z-60 py-2 ">
-                <div className="flex flex-col space-y-1">
-                  {folders.map((folder) => (
-                    <DropdownMenuItem
-                      key={folder}
-                      onClick={() => setSelectedFolder(folder)}
-                      className=" w-full cursor-pointer rounded pl-5 pr-9 py-1  hover:bg-gray-200"
-                    >
-                      {folder}
-                    </DropdownMenuItem>
-                  ))}
-                </div>
-              </DropdownMenuContent>
             </DropdownMenu>
 
             {/* Status Selector */}
@@ -315,7 +308,7 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, disa
               value={markdown}
               onChange={(e) => handleChange(e.target.value)}
               className="flex-1 bg-[#1f2326] text-gray-300 p-6 outline-none resize-none font-mono text-sm leading-relaxed"
-              placeholder="Start writing..."
+              placeholder=""
               disabled={!!disabled}
             />
           </div>
