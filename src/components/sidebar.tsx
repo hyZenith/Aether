@@ -1,5 +1,5 @@
 import { ChevronRight, ChevronDown, Settings, FileText, Pin, BookOpen, Trash2, Activity, Plus, CircleDot, Circle, PauseCircle, CheckCircle, XCircle, Tag, User, FolderOpen, Diff } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { FolderTree } from "./ui/FolderTree";
 import { openVaultAndRead, VaultFolder } from "../utils/vaultManager";
 
@@ -22,12 +22,19 @@ interface SidebarProps {
   activeFilter?: ActiveFilter;
 }
 
+const MIN_WIDTH = 170;
+const MAX_WIDTH = 500;
+const DEFAULT_WIDTH = 170;
+
 export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes, vaultRootPath, onFilterByStatus, onFilterByTag, onClearFilter, tags, statusCounts, activeFilter }: SidebarProps) => {
   const [isStatusOpen, setIsStatusOpen] = useState(true);
   const [isTagsOpen, setIsTagsOpen] = useState(true);
   const [isNotebooksOpen, setIsNotebooksOpen] = useState(true);
 
   const [folders, setFolders] = useState<VaultFolder[]>([]); //store the folder
+  const [sidebarWidth, setSidebarWidth] = useState(DEFAULT_WIDTH);
+  const [isResizing, setIsResizing] = useState(false);
+  const sidebarRef = useRef<HTMLDivElement | null>(null);
 
 
   const handleOpenVault = async () => {
@@ -52,7 +59,36 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
     }
   };
 
+  const handleMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    setIsResizing(true);
+  };
 
+  useEffect(() => {
+    if (!isResizing) return;
+
+    const handleMouseMove = (event: MouseEvent) => {
+      if (!sidebarRef.current) return;
+      const sidebarLeft = sidebarRef.current.getBoundingClientRect().left;
+      const proposedWidth = event.clientX - sidebarLeft;
+      const clampedWidth = Math.min(Math.max(proposedWidth, MIN_WIDTH), MAX_WIDTH);
+      setSidebarWidth(clampedWidth);
+    };
+
+    const handleMouseUp = () => {
+      setIsResizing(false);
+    };
+
+    document.body.style.userSelect = "none";
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+
+    return () => {
+      document.body.style.userSelect = "";
+      window.removeEventListener("mousemove", handleMouseMove);
+      window.removeEventListener("mouseup", handleMouseUp);
+    };
+  }, [isResizing]);
 
   const renderFolders = (folders: VaultFolder[], depth = 0) => {
     return folders.map((folder) => (
@@ -96,9 +132,17 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
 
 
   return (
-    <aside className="flex flex-col h-screen w-[250px] bg-[#151515] border-r border-[#2d3236]">
+    <aside
+      ref={sidebarRef}
+      className="relative flex flex-col h-screen bg-[#151515] border-r border-[#2d3236] text-[14px]"
+      style={{
+        width: `${sidebarWidth}px`,
+        minWidth: `${MIN_WIDTH}px`,
+        maxWidth: `${MAX_WIDTH}px`,
+      }}
+    >
       <div className="flex items-center justify-between px-4 py-3 border-b border-[#2d3236] border-sidebar-border">
-        <button onClick={handleOpenVault} className="flex items-center gap-2 text-xs font-semibold px-2 py-1 rounded text-gray-400 hover:bg-[#282c30] hover:text-gray-200 transition-colors">
+        <button onClick={handleOpenVault} className="flex items-center gap-2 text-[14px] font-semibold px-2 py-1 rounded text-gray-400 hover:bg-[#282c30] hover:text-gray-200 transition-colors">
           <FolderOpen className="w-4 h-4" />
           <span>{vaultName || "Open Vault"}</span>
         </button>
@@ -126,9 +170,9 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
         >
           <div className="flex items-center gap-3">
             <FileText className="w-5 h-5" />
-            <span className="text-sm font-medium">All Notes</span>
+            <span className="text-[14px] font-medium">All Notes</span>
           </div>
-          <span className="text-xs text-gray-500 group-hover:text-gray-400">
+          <span className="text-[14px] text-gray-500 group-hover:text-gray-400">
             {statusCounts ? Object.values(statusCounts).reduce((a, b) => a + b, 0) : 0}
           </span>
         </button>
@@ -139,7 +183,7 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
           {folders.length > 0 ? (
             renderFolders(folders)
           ) : (
-            <p className="text-xs text-gray-500 pl-8 py-2">No vault opened</p>
+            <p className="text-[14px] text-gray-500 pl-8 py-2">No vault opened</p>
           )}
 
 
@@ -148,7 +192,7 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
         {/* Trash */}
         <button className="w-full flex items-center gap-3 px-4 py-2 text-gray-400 hover:bg-[#282c30] hover:text-gray-200 transition-colors mt-1">
           <Trash2 className="w-5 h-5" />
-          <span className="text-sm font-medium">Trash</span>
+          <span className="text-[14px] font-medium">Trash</span>
         </button>
 
         {/* Status Section */}
@@ -159,7 +203,7 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
           >
             <div className="flex items-center gap-3">
               <CircleDot className="w-5 h-5" />
-              <span className="text-sm font-medium">Status</span>
+              <span className="text-[14px] font-medium">Status</span>
             </div>
             {isStatusOpen ? (
               <ChevronDown className="w-4 h-4" />
@@ -180,9 +224,9 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
               >
                 <div className="flex items-center gap-3">
                   <Circle className="w-4 h-4 text-blue-500 fill-blue-500" />
-                  <span className="text-sm">Active</span>
+                  <span className="text-[14px]">Active</span>
                 </div>
-                <span className="text-xs text-gray-500 group-hover:text-gray-400">
+                <span className="text-[14px] text-gray-500 group-hover:text-gray-400">
                   {statusCounts?.active || 0}
                 </span>
               </button>
@@ -197,9 +241,9 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
               >
                 <div className="flex items-center gap-3">
                   <PauseCircle className="w-4 h-4 text-amber-500" />
-                  <span className="text-sm">On Hold</span>
+                  <span className="text-[14px]">On Hold</span>
                 </div>
-                <span className="text-xs text-gray-500 group-hover:text-gray-400">
+                <span className="text-[14px] text-gray-500 group-hover:text-gray-400">
                   {statusCounts?.['on hold'] || 0}
                 </span>
               </button>
@@ -214,9 +258,9 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
               >
                 <div className="flex items-center gap-3">
                   <CheckCircle className="w-4 h-4 text-green-500" />
-                  <span className="text-sm">Completed</span>
+                  <span className="text-[14px]">Completed</span>
                 </div>
-                <span className="text-xs text-gray-500 group-hover:text-gray-400">
+                <span className="text-[14px] text-gray-500 group-hover:text-gray-400">
                   {statusCounts?.completed || 0}
                 </span>
               </button>
@@ -231,9 +275,9 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
               >
                 <div className="flex items-center gap-3">
                   <XCircle className="w-4 h-4 text-red-500" />
-                  <span className="text-sm">Dropped</span>
+                  <span className="text-[14px]">Dropped</span>
                 </div>
-                <span className="text-xs text-gray-500 group-hover:text-gray-400">
+                <span className="text-[14px] text-gray-500 group-hover:text-gray-400">
                   {statusCounts?.dropped || 0}
                 </span>
               </button>
@@ -249,7 +293,7 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
           >
             <div className="flex items-center gap-3">
               <Tag className="w-5 h-5" />
-              <span className="text-sm font-medium">Tags</span>
+              <span className="text-[14px] font-medium">Tags</span>
             </div>
             {isTagsOpen ? (
               <ChevronDown className="w-4 h-4" />
@@ -272,18 +316,22 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
                 >
                   <div className="flex items-center gap-3">
                     <Circle className="w-2 h-2 fill-gray-400" />
-                    <span className="text-sm">{tag}</span>
+                    <span className="text-[14px]">{tag}</span>
                   </div>
                 </button>
               ))}
               {(!tags || tags.length === 0) && (
-                <p className="text-xs text-gray-500 pl-8 py-2">No tags available</p>
+                <p className="text-[14px] text-gray-500 pl-8 py-2">No tags available</p>
               )}
             </div>
           )}
         </div>
 
       </nav>
+      <div
+        className="absolute top-0 right-0 h-full w-[6px] cursor-col-resize hover:bg-[#2d3236]"
+        onMouseDown={handleMouseDown}
+      />
       <div className="border-t border-[#2d3236]">
         <button className="w-full flex items-center justify-between px-4 py-3 text-gray-400 hover:bg-[#282c30] transition-colors group">
           <div className="flex items-center gap-3">
@@ -291,7 +339,7 @@ export const Sidebar = ({ onOpenVault, vaultName, onSelectFolder, onShowAllNotes
               <User className="w-4 h-4" />
             </div>
             <div className="text-left">
-              <p className="text-sm font-medium text-gray-200">Zenith</p>
+              <p className="text-[14px] font-medium text-gray-200">Zenith</p>
             </div>
           </div>
         </button>
