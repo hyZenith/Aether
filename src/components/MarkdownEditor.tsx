@@ -4,6 +4,7 @@ import remarkGfm from "remark-gfm";
 import { Eye, Columns2, Hash, Bold, Italic, Strikethrough, Link, List, ListOrdered, CheckSquare, Quote, Code, Code2, Minus, Image, X, Plus, Book, ChevronDown } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { buildContentWithFrontmatter, parseFrontmatterFromContent } from "../utils/vaultManager";
+import ControlButtons from "./ui/Control-buttons";
 
 type ViewMode = "edit" | "preview" | "split";
 
@@ -184,6 +185,13 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, file
 
   return (
     <main className="flex-1 flex flex-col">
+      <div className="editor-window-bar ">
+        <div className="spacer"></div>
+          <div className="window-control-buttons flex items-center text-white justify-end gap-2 pr-2">
+            <ControlButtons /> 
+
+          </div>
+      </div>
       {/* Header */}
       <div className="bg-[#F8F7F7]">
         <div className="p-3 flex items-center justify-between gap-4">
