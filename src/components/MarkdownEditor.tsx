@@ -5,6 +5,8 @@ import { Eye, Columns2, Hash, Bold, Italic, Strikethrough, Link, List, ListOrder
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@radix-ui/react-dropdown-menu";
 import { buildContentWithFrontmatter, parseFrontmatterFromContent } from "../utils/vaultManager";
 import ControlButtons from "./ui/Control-buttons";
+import CodeMirrorEditor from "../utils/CodeMirrorEditor";
+
 
 type ViewMode = "edit" | "preview" | "split";
 
@@ -109,19 +111,19 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, file
     const full = content || "";
     const { meta, body } = parseFrontmatterFromContent(full);
     setMarkdown(body);
-    
+
     // Check if this is the first load
     const isFirstLoad = lastSavedContentRef.current === "";
     if (isFirstLoad) {
       lastSavedContentRef.current = full;
     }
-    
+
     // Only update title if this is an external change (not from our own save)
     // or if fileName changed, or on first load
     const isExternalChange = full !== lastSavedContentRef.current;
     const fileNameChanged = prevFileNameRef.current !== fileName;
     prevFileNameRef.current = fileName;
-    
+
     if (isExternalChange || fileNameChanged || isFirstLoad) {
       // Title should reflect filename primarily
       if (fileName) {
@@ -130,7 +132,7 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, file
         setTitle(meta.title || "");
       }
     }
-    
+
     setPinned(!!meta.pinned);
     setTags(meta.tags || []);
     setSelectedStatus(meta.status ? meta.status.replace(/\b\w/g, (c) => c.toUpperCase()) : null);
@@ -187,10 +189,10 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, file
     <main className="flex-1 flex flex-col">
       <div className="editor-window-bar ">
         <div className="spacer"></div>
-          <div className="window-control-buttons flex items-center text-white justify-end gap-2 pr-2">
-            <ControlButtons /> 
+        <div className="window-control-buttons flex items-center text-white justify-end gap-2 pr-2">
+          <ControlButtons />
 
-          </div>
+        </div>
       </div>
       {/* Header */}
       <div className="bg-[#F8F7F7]">
@@ -277,7 +279,7 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, file
                 value={newTag}
                 placeholder="Add tag"
                 onChange={(e) => setNewTag(e.target.value)}
-                onKeyDown={(e)=> {
+                onKeyDown={(e) => {
                   if (e.key === "Enter" || e.key === ",") { e.preventDefault(); addTag(); }
                 }}
                 className="bg-transparent font-semibold outline-none text-gray-400 text-sm"
@@ -310,22 +312,20 @@ const Index = ({ content, onContentChange, onSave, onTitleChange, fileName, file
       <div className="flex-1 flex relative overflow-hidden">
         {/* Edit View */}
         {(viewMode === "edit" || viewMode === "split") && (
-          <div className={`${viewMode === "split" ? "w-1/2" : "w-full"} flex flex-col border-r border-gray-800`}>
-            <textarea
-              ref={textareaRef}
+          <div className={`${viewMode === "split" ? "w-1/2" : "w-full"} flex flex-col border-r border-gray-800 overflow-hidden`}>
+            <CodeMirrorEditor
               value={markdown}
-              onChange={(e) => handleChange(e.target.value)}
-              className="flex-1 bg-[#1f2326] text-gray-300 p-6 outline-none resize-none font-mono text-sm leading-relaxed"
-              placeholder=""
-              disabled={!!disabled}
+              onChange={handleChange}
+              disabled={disabled}
             />
+
           </div>
         )}
 
         {/* Preview View */}
         {(viewMode === "preview" || viewMode === "split") && (
           <div className={`${viewMode === "split" ? "w-1/2" : "w-full"} overflow-auto`}>
-            <div className="p-6 prose prose-invert prose-slate max-w-none whitespace-pre-wrap [&_pre]:overflow-x-auto [&_pre]:whitespace-pre-wrap wrap-break-word">
+            <div className="p-6 prose prose-invert prose-slate max-w-none whitespace-pre-wrap wrap-break-word [&_pre]:overflow-x-auto [&_pre]:whitespace-pre-wrap [&_pre]:wrap-break-word">
               <ReactMarkdown remarkPlugins={[remarkGfm]}>
                 {markdown}
               </ReactMarkdown>
